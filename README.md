@@ -69,6 +69,31 @@ classDiagram
     Veiculo <|-- Carro
     Veiculo <|-- Moto
     Veiculo <|-- Caminhao
+
+    class Manutencao {
+        +str data
+        +str tipo
+        +float custo
+        +str descricao
+    }
+
+    class Abastecimento {
+        +str data
+        +str tipo_combustivel
+        +float litros
+        +float valor
+    }
+
+    class Viagem {
+        +str origem
+        +str destino
+        +float distancia
+    }
+
+    ManutenivelMixin "1" *-- "*" Manutencao : contem
+    AbastecivelMixin "1" *-- "*" Abastecimento : contem
+    Motorista "1" --> "*" Viagem : realiza
+    Viagem "*" --> "1" Veiculo : utiliza
 ```
 
 
