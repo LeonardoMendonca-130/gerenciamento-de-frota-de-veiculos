@@ -1,0 +1,12 @@
+{
+  "limite_km_revisao_preventiva": 10000,
+  "faixa_consumo_aceitavel": {
+    "minimo": 8,
+    "maximo": 20
+  },
+  "categorias_cnh_minimas": {
+    "Moto": "A",
+    "Carro": "B",
+    "Caminhao": "C"
+  }
+}
