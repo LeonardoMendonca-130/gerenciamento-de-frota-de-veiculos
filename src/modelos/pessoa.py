@@ -33,3 +33,9 @@ class Pessoa:
     def cpf(self) -> str:
         """Retorna o CPF da pessoa."""
         return self._cpf
+        
+    def __str__(self) -> str:
+        return f"{self.nome} (CPF: {self.cpf})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(nome='{self.nome}', cpf='{self.cpf}')"
