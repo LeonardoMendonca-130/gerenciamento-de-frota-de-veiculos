@@ -33,4 +33,3 @@ class Pessoa:
     def cpf(self) -> str:
         """Retorna o CPF da pessoa."""
         return self._cpf
-        pass
