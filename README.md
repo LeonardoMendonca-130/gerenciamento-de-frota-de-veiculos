@@ -115,6 +115,12 @@ gerenciamento-de-frota-de-veiculos/
 │   │   └── registros.py
 │   └── settings.json
 │
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_motorista.py   
+│   └── test_veiculo.py        
+│
 ├── README.md
 └── .gitignore
 ```
