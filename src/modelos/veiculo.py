@@ -1,6 +1,7 @@
 """Módulo contendo a hierarquia de veículos."""
 
 from src.modelos.mixins import AbastecivelMixin, ManutenivelMixin
+from src.modelos.motorista import Motorista
 
 
 class Veiculo(AbastecivelMixin, ManutenivelMixin):
@@ -40,6 +41,10 @@ class Veiculo(AbastecivelMixin, ManutenivelMixin):
         self.quilometragem = quilometragem  # Valida via setter (>= 0)
         self.consumo_medio = consumo_medio  # Valida via setter (> 0)
         self._status = "ATIVO"
+        
+        self.motorista_alocado: Motorista | None = None
+        self.cnhs_permitidas: set[str] = set()
+
         
     @property
     def placa(self) -> str:
@@ -93,6 +98,34 @@ class Veiculo(AbastecivelMixin, ManutenivelMixin):
         
     # --- MÉTODOS ESPECIAIS REQUISITADOS ---
     
+    def alocar_motorista(self, motorista: Motorista) -> None:
+        """Associa um veículo a um motorista, aplicando as regras de negócio."""
+        # 1. Bloquear alocação se o veículo estiver em manutenção ou inativo
+        if self.status != "ATIVO":
+            raise ValueError(f"Não é possível alocar. O veículo está {self.status}.")
+            
+        # 2. Validar compatibilidade da CNH com o tipo de veículo
+        if motorista.cnh_categoria not in self.cnhs_permitidas:
+            raise ValueError(
+                f"CNH '{motorista.cnh_categoria}' incompatível. "
+                f"Este veículo exige uma destas categorias: {self.cnhs_permitidas}."
+            )
+             
+        # 3. Validar se o motorista já está em outra viagem
+        if not motorista.disponivel:
+            raise ValueError("O motorista não está disponível no momento.")
+            
+        # 4. Efetivar alocação
+        self.motorista_alocado = motorista
+        motorista.disponivel = False
+
+    def desalocar_motorista(self) -> None:
+        """Libera o motorista do veículo ao fim do uso."""
+        if self.motorista_alocado:
+            self.motorista_alocado.disponivel = True
+            self.motorista_alocado = None
+
+    
     def __str__(self) -> str:
         """Retorna representação legível do veículo em string."""
         return (
@@ -123,19 +156,29 @@ class Veiculo(AbastecivelMixin, ManutenivelMixin):
         """Permite iterar sobre o histórico de manutenções do veículo."""
         return iter(self.historico_manutencoes)
 
+# --- SUBCLASSES COM DEFINIÇÃO DE CNH ---
+
+
 class Carro(Veiculo):
     """Representa um veículo do tipo Carro (requer CNH B)."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Carros aceitam CNH B, mas quem tem C, D ou E também pode dirigir[cite: 4].
+        self.cnhs_permitidas = {"B", "C", "D", "E"}
 
-    pass
+    
 
 
 class Moto(Veiculo):
     """Representa um veículo do tipo Moto (requer CNH A)."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cnhs_permitidas = {"A"}
 
-    pass
 
 
 class Caminhao(Veiculo):
     """Representa um veículo do tipo Caminhão (requer CNH C ou superior)."""
-
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cnhs_permitidas = {"C", "D", "E"}
