@@ -31,10 +31,14 @@ class AbastecivelMixin:
 class ManutenivelMixin:
     """Mixin que adiciona capacidades de controle de manutenção e status."""
 
+    STATUS_VALIDOS = {"ATIVO", "MANUTENCAO", "INATIVO"}
+    
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._historico_manutencoes: list[Manutencao] = []
-        
+
+    self._status = "ATIVO"
+    
     @property
     def historico_manutencoes(self) -> list[Manutencao]:
         return list(self._historico_manutencoes)
@@ -65,3 +69,12 @@ class ManutenivelMixin:
                 f"Status inválido: '{novo_status}'. Opções válidas: {self.STATUS_VALIDOS}"
             )
         self._status = status_upper
+
+    def enviar_para_manutencao(self, manutencao: object) -> None:
+        """Regista a manutenção e altera o status do veículo para MANUTENCAO."""
+        self.registrar_manutencao(manutencao)
+        self.alterar_status("MANUTENCAO")
+
+    def concluir_manutencao(self) -> None:
+        """Liberta o veículo após a manutenção, voltando ao status ATIVO."""
+        self.alterar_status("ATIVO")
