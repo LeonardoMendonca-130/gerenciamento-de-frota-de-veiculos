@@ -54,3 +54,19 @@ def test_iterador_historico_manutencoes():
     manutencoes_lista = list(moto)  # Utiliza __iter__
     assert len(manutencoes_lista) == 1
     assert manutencoes_lista[0].custo == 150.0
+    
+def test_fluxo_de_manutencao_altera_status():
+    """Garante que enviar para manutenção e concluir atualizam o status[cite: 2, 5]."""
+    from src.modelos.registros import Manutencao
+    
+    carro = Carro("XYZ9999", "Fiat", "Uno", 2018, 50000.0, 14.0)
+    manutencao = Manutencao("27/10/2026", "corretiva", 500.0, "Troca de pneus")
+    
+    assert carro.status == "ATIVO"
+    
+    carro.enviar_para_manutencao(manutencao)
+    assert carro.status == "MANUTENCAO"
+    assert len(carro.historico_manutencoes) == 1
+    
+    carro.concluir_manutencao()
+    assert carro.status == "ATIVO"
