@@ -1,16 +1,32 @@
 """Módulo contendo os mixins para herança múltipla em Veiculo."""
+from __future__ import annotations
 
+from src.excecoes import ManutencaoInvalidaError
 from src.modelos.registros import Abastecimento, Manutencao
+from src.modelos.status import StatusVeiculo
+
 
 class AbastecivelMixin:
     """Mixin que adiciona capacidades de gerenciamento de abastecimento."""
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._historico_abastecimentos: list[Abastecimento] = []
-        
+
     @property
     def historico_abastecimentos(self) -> list[Abastecimento]:
+        """Cópia do histórico de abastecimentos."""
         return list(self._historico_abastecimentos)
+
+    @property
+    def litros_totais(self) -> float:
+        """Total de litros abastecidos."""
+        return sum(a.litros for a in self._historico_abastecimentos)
+
+    @property
+    def gasto_total_combustivel(self) -> float:
+        """Total pago em abastecimentos."""
+        return sum(a.valor for a in self._historico_abastecimentos)
 
     def abastecer(
         self, data: str, tipo_combustivel: str, litros: float, valor: float
@@ -23,58 +39,64 @@ class AbastecivelMixin:
             litros (float): Quantidade de litros abastecidos.
             valor (float): Valor total pago.
         """
-        
-        novo_abastecimento = Abastecimento(data, tipo_combustivel, litros, valor)
-        self._historico_abastecimentos.append(novo_abastecimento)
+        self._historico_abastecimentos.append(
+            Abastecimento(data, tipo_combustivel, litros, valor)
+        )
 
 
 class ManutenivelMixin:
-    """Mixin que adiciona capacidades de controle de manutenção e status."""
+    """Mixin que adiciona controle de manutenção e de status (State)."""
 
-    STATUS_VALIDOS = {"ATIVO", "MANUTENCAO", "INATIVO"}
-    
+    STATUS_VALIDOS = frozenset(s.value for s in StatusVeiculo)
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._historico_manutencoes: list[Manutencao] = []
+        self._status: StatusVeiculo = StatusVeiculo.ATIVO
 
-    self._status = "ATIVO"
-    
+    @property
+    def status(self) -> str:
+        """Status atual (ATIVO, MANUTENCAO ou INATIVO)."""
+        return self._status.value
+
     @property
     def historico_manutencoes(self) -> list[Manutencao]:
+        """Cópia do histórico de manutenções."""
         return list(self._historico_manutencoes)
-        
-    def registrar_manutencao(self, manutencao: object) -> None:
+
+    def registrar_manutencao(self, manutencao: Manutencao) -> None:
         """Adiciona um registro de manutenção ao histórico do veículo.
 
-        Args:
-            manutencao (object): Objeto de manutenção contendo os detalhes.
+        Raises:
+            TypeError: Se o objeto não for uma Manutencao.
         """
         if not isinstance(manutencao, Manutencao):
             raise TypeError("O registro deve ser um objeto do tipo Manutencao.")
         self._historico_manutencoes.append(manutencao)
 
     def alterar_status(self, novo_status: str) -> None:
-        """Altera o status do veículo (ATIVO, MANUTENCAO, INATIVO).
+        """Altera o status respeitando as transições permitidas.
 
-        Args:
-            novo_status (str): Novo estado do veículo.
-            
         Raises:
-            ValueError: Se o status informado for inválido.
+            ValueError: Se o status for desconhecido.
+            ManutencaoInvalidaError: Se a transição não for permitida.
         """
-        
-        status_upper = novo_status.strip().upper()
-        if status_upper not in self.STATUS_VALIDOS:
-            raise ValueError(
-                f"Status inválido: '{novo_status}'. Opções válidas: {self.STATUS_VALIDOS}"
+        novo = StatusVeiculo.de_texto(novo_status)
+        if not self._status.pode_ir_para(novo):
+            raise ManutencaoInvalidaError(
+                f"Transição inválida: {self._status.value} -> {novo.value}."
             )
-        self._status = status_upper
+        self._status = novo
 
-    def enviar_para_manutencao(self, manutencao: object) -> None:
-        """Regista a manutenção e altera o status do veículo para MANUTENCAO."""
-        self.registrar_manutencao(manutencao)
+    def enviar_para_manutencao(self, manutencao: Manutencao) -> None:
+        """Muda o status para MANUTENCAO e registra a manutenção."""
+        if not isinstance(manutencao, Manutencao):
+            raise TypeError("O registro deve ser um objeto do tipo Manutencao.")
         self.alterar_status("MANUTENCAO")
+        self.registrar_manutencao(manutencao)
 
     def concluir_manutencao(self) -> None:
-        """Liberta o veículo após a manutenção, voltando ao status ATIVO."""
+        """Libera o veículo após a manutenção (volta a ATIVO)."""
+        if self._status is not StatusVeiculo.MANUTENCAO:
+            raise ManutencaoInvalidaError("O veículo não está em manutenção.")
         self.alterar_status("ATIVO")
