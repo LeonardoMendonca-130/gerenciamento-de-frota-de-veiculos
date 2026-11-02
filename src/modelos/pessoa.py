@@ -1,5 +1,5 @@
 """Módulo contendo a classe Pessoa."""
-
+from __future__ import annotations
 
 class Pessoa:
     """Representa uma pessoa no sistema.
@@ -15,25 +15,32 @@ class Pessoa:
         Args:
             nome (str): Nome da pessoa.
             cpf (str): Número do CPF.
+
+        Raises:
+            ValueError: Se nome ou CPF forem vazios.
         """
-        if not nome.strip():
-            raise ValueError("O nome não pode ser vazio.")
         if not cpf.strip():
             raise ValueError("O CPF não pode ser vazio.")
 
-        self._nome = nome
-        self._cpf = cpf
+        self.nome = nome
+        self._cpf = cpf.strip()
 
     @property
     def nome(self) -> str:
         """Retorna o nome da pessoa."""
         return self._nome
 
+    @nome.setter
+    def nome(self, valor: str) -> None:
+        if not valor.strip():
+            raise ValueError("O nome não pode ser vazio.")
+        self._nome = valor.strip()
+
     @property
     def cpf(self) -> str:
         """Retorna o CPF da pessoa."""
         return self._cpf
-        
+
     def __str__(self) -> str:
         return f"{self.nome} (CPF: {self.cpf})"
 
