@@ -4,6 +4,15 @@
     "minimo": 8,
     "maximo": 20
   },
+  "faixa_consumo_por_tipo": {
+    "Moto": {"minimo": 25, "maximo": 60},
+    "Caminhao": {"minimo": 2, "maximo": 8}
+  },
+  "custos_manutencao": {
+    "basica": 150.0,
+    "complexa": 400.0,
+    "pesada": 900.0
+  },
   "categorias_cnh_minimas": {
     "Moto": "A",
     "Carro": "B",
