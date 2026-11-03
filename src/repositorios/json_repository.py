@@ -1,43 +1,36 @@
-"""Módulo para persistência de dados em JSON."""
+"""Persistência em arquivo JSON."""
+from __future__ import annotations
+
 import json
 import os
-from src.modelos.veiculo import Carro, Moto, Caminhao
+from typing import Any
 
-class JsonRepository:
-    """Responsável por ler e gravar dados num ficheiro JSON."""
+from src.excecoes import RepositorioError
+from src.repositorios.base import RepositorioBase, estrutura_vazia
 
-    def __init__(self, caminho_ficheiro: str = "dados_frota.json"):
+
+class JsonRepository(RepositorioBase):
+    """Lê e grava o estado da frota em um arquivo JSON."""
+
+    def __init__(self, caminho_ficheiro: str = "dados_frota.json") -> None:
         self.caminho_ficheiro = caminho_ficheiro
-        # Cria o ficheiro vazio caso não exista
         if not os.path.exists(self.caminho_ficheiro):
-            self.salvar_dados({"veiculos": []})
+            self.salvar_dados(estrutura_vazia())
 
-    def salvar_dados(self, dados: dict) -> None:
-        """Escreve um dicionário no ficheiro usando json.dump."""
-        with open(self.caminho_ficheiro, 'w', encoding='utf-8') as f:
-            json.dump(dados, f, indent=4, ensure_ascii=False)
+    def salvar_dados(self, dados: dict[str, Any]) -> None:
+        """Escreve o dicionário com json.dump (gravação atômica)."""
+        temporario = f"{self.caminho_ficheiro}.tmp"
+        try:
+            with open(temporario, "w", encoding="utf-8") as f:
+                json.dump(dados, f, indent=4, ensure_ascii=False)
+            os.replace(temporario, self.caminho_ficheiro)
+        except (OSError, TypeError) as erro:
+            raise RepositorioError(f"Falha ao gravar JSON: {erro}") from erro
 
-    def ler_dados(self) -> dict:
-        """Lê o ficheiro JSON e devolve um dicionário usando json.load."""
-        with open(self.caminho_ficheiro, 'r', encoding='utf-8') as f:
-            return json.load(f)
-
-    def guardar_veiculos(self, lista_veiculos: list) -> None:
-        """Converte uma lista de objetos Veiculo em dicionários e guarda-os."""
-        dados_formatados = []
-        for v in lista_veiculos:
-            tipo_veiculo = v.__class__.__name__
-            dados_formatados.append({
-                "tipo": tipo_veiculo,
-                "placa": v.placa,
-                "marca": v.marca,
-                "modelo": v.modelo,
-                "ano": v.ano,
-                "quilometragem": v.quilometragem,
-                "consumo_medio": v.consumo_medio,
-                "status": v.status
-            })
-        
-        dados_atuais = self.ler_dados()
-        dados_atuais["veiculos"] = dados_formatados
-        self.salvar_dados(dados_atuais)
+    def ler_dados(self) -> dict[str, Any]:
+        """Lê o arquivo com json.load."""
+        try:
+            with open(self.caminho_ficheiro, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError) as erro:
+            raise RepositorioError(f"Falha ao ler JSON: {erro}") from erro
