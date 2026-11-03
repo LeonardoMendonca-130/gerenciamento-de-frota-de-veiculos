@@ -35,6 +35,8 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+*.tmp
+.venv/
 
 # Unit test / coverage reports
 htmlcov/
@@ -60,6 +62,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+dados_frota.json
+dados_frota.db
 
 # Flask stuff:
 instance/
