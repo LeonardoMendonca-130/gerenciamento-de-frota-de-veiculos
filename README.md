@@ -5,63 +5,112 @@
  
 >O projeto objetiva gerenciar a frota de veículos e motoristas de uma empresa de transportes, permitindo o controle de manutenções, o histórico de abastecimentos, a alocação de viagens e a geração de relatórios operacionais e de custos.
 
-## Classes
-- **Veiculo**: Classe geral para veículos, é quem herda dos mixins.
-- **Carro**, **Moto**, **Caminhao**: Subclasses de **Veiculo**
-- **Pessoa**: Classe para registro de dados pessoais.
-- **Motorista**: Subclasse de **Pessoa**, contém a categoria da CNH, a experiência profissional e o histórico de viagens.
-- **Entidades Auxiliares**:
-- `Manutencao`: Registro preventivo de manutenções veiculares, ex: revisão a cada 10,000km.
-- `Abastecimento`: Registro de abastecimento veicular e base para cálculo de consumo.
-- `Viagem`: Registro da alocação de veículos e dos percursos efetuados.
-- **Mixins**:
-- `AbastecivelMixin`: Mixin que adiciona histórico e controle de abastecimentos.
-- `ManutenivelMixin`: Mixin que adiciona registros de manutenção e controle do status dela.
-
+## 🧩 Diagrama UML
 
 ```mermaid
 classDiagram
+    direction TB
+
     class Pessoa {
-        +str nome
-        +str cpf
+        -str _nome
+        -str _cpf
+        +nome str
+        +cpf str
     }
 
-
     class Motorista {
-        +str cnh_categoria
-        +int tempo_experiencia_anos
-        +bool disponivel
-        +list~Viagem~ historico_viagens
-        +registrar_viagem(viagem: Viagem) None
+        -str _cnh_categoria
+        -int _tempo_experiencia_anos
+        -bool _disponivel
+        -list~Viagem~ _historico_viagens
+        +CATEGORIAS_VALIDAS frozenset
+        +total_viagens int
+        +km_total float
+        +registrar_viagem(viagem) None
+        +para_dict() dict
+        +de_dict(d)$ Motorista
     }
 
     class AbastecivelMixin {
-        +list~Abastecimento~ historico_abastecimentos
-        +abastecer(data: str, tipo_combustivel: str, litros: float, valor: float) None
+        -list~Abastecimento~ _historico_abastecimentos
+        +litros_totais float
+        +gasto_total_combustivel float
+        +abastecer(data, tipo_combustivel, litros, valor) None
     }
 
     class ManutenivelMixin {
-        +list~Manutencao~ historico_manutencoes
-        +registrar_manutencao(manutencao: Manutencao) None
-        +alterar_status(novo_status: str) None
+        -StatusVeiculo _status
+        -list~Manutencao~ _historico_manutencoes
+        +status str
+        +registrar_manutencao(manutencao) None
+        +alterar_status(novo_status) None
+        +enviar_para_manutencao(manutencao) None
+        +concluir_manutencao() None
     }
 
     class Veiculo {
-        <<Abstract>>
-        +str placa
-        +str marca
-        +str modelo
-        +int ano
-        +float quilometragem
-        +float consumo_medio
-        +str status
+        <<abstract>>
+        -str _placa
+        -str _marca
+        -str _modelo
+        -int _ano
+        -float _quilometragem
+        -float _consumo_medio
+        +TIPO str
+        +motorista_alocado Motorista
+        +cnhs_permitidas frozenset
+        +revisao_preventiva_pendente bool
+        +consumo_real float
+        +consumo_efetivo float
+        +consumo_fora_da_faixa bool
+        +alocar_motorista(motorista) None
+        +desalocar_motorista() None
+        +registrar_viagem(origem, destino, distancia) Viagem
+        +registrar_evento(tipo, descricao) None
+        +para_dict() dict
+        +de_dict(d)$ Veiculo
+        +__str__() str
+        +__repr__() str
         +__eq__(other) bool
         +__lt__(other) bool
+        +__iter__() Iterator
     }
 
-    class Carro
-    class Moto
-    class Caminhao
+    class Carro { +TIPO = "Carro" }
+    class Moto { +TIPO = "Moto" }
+    class Caminhao { +TIPO = "Caminhao" }
+
+    class Manutencao {
+        +str data
+        +str tipo
+        +float custo
+        +str descricao
+    }
+    class Abastecimento {
+        +str data
+        +str tipo_combustivel
+        +float litros
+        +float valor
+    }
+    class Viagem {
+        +str origem
+        +str destino
+        +float distancia_percorrida
+        +str placa
+    }
+    class Evento {
+        +str data
+        +str tipo
+        +str descricao
+    }
+
+    class StatusVeiculo {
+        <<enumeration>>
+        ATIVO
+        MANUTENCAO
+        INATIVO
+        +pode_ir_para(novo) bool
+    }
 
     Pessoa <|-- Motorista
     AbastecivelMixin <|-- Veiculo
@@ -70,32 +119,13 @@ classDiagram
     Veiculo <|-- Moto
     Veiculo <|-- Caminhao
 
-    class Manutencao {
-        +str data
-        +str tipo
-        +float custo
-        +str descricao
-    }
-
-    class Abastecimento {
-        +str data
-        +str tipo_combustivel
-        +float litros
-        +float valor
-    }
-
-    class Viagem {
-        +str origem
-        +str destino
-        +float distancia
-    }
-
-    ManutenivelMixin "1" *-- "*" Manutencao : contem
-    AbastecivelMixin "1" *-- "*" Abastecimento : contem
-    Motorista "1" --> "*" Viagem : realiza
-    Viagem "*" --> "1" Veiculo : utiliza
+    Veiculo "1" *-- "*" Manutencao : historico
+    Veiculo "1" *-- "*" Abastecimento : historico
+    Veiculo "1" *-- "*" Evento : historico
+    Motorista "1" *-- "*" Viagem : realiza
+    Veiculo "0..1" --> "0..1" Motorista : alocado a
+    ManutenivelMixin ..> StatusVeiculo : usa
 ```
-
 
 ## Arquitetura do Projeto
 
@@ -104,31 +134,26 @@ classDiagram
 ```text
 gerenciamento-de-frota-de-veiculos/
 │
-├── src/
-│   ├── __init__.py
-│   ├── modelos/
-│   │   ├── __init__.py
-│   │   ├── pessoa.py
-│   │   ├── motorista.py
-│   │   ├── mixins.py
-│   │   ├── veiculo.py
-│   │   └── registros.py
-│   └── settings.json
-│
-│
-├── tests/
-│   ├── __init__.py
-│   ├── test_motorista.py   
-│   └── test_veiculo.py        
-│
-├── README.md
-└── .gitignore
+cli.py
+src/
+├── config.py, excecoes.py, settings.json
+├── modelos/        pessoa, motorista, mixins, veiculo, registros, status, estrategias
+├── repositorios/   base (interface), json_repository, sqlite_repository
+└── servicos/       frota_service (casos de uso), relatorios
+tests/
 ```
 
-## Aplicação de Conhecimentos Teóricos da Disciplina:
-- Linguagem: Python 
-- Paradigma: Programação Orientada a Objetos; A modelagem do sistema utiliza conceitos de POO como herança simples, herança múltipla via mixins, encapsulamento e métodos especiais.
-- Configuração: Arquivo JSON (`settings.json`) para armazenamento de regras e parâmetros do sistema.
+## Decisões de design
+- **Herança múltipla:** `Veiculo(AbastecivelMixin, ManutenivelMixin)`. Cada mixin chama `super().__init__`, então o MRO inicializa tudo.
+- **Encapsulamento:** atributos privados com `@property` e validações nos setters (km ≥ 0, consumo > 0, CNH válida...).
+- **Métodos especiais:** `__str__`, `__repr__`, `__eq__` (placa), `__hash__`, `__lt__` (km) e `__iter__` (manutenções).
+- **State/Enum:** `StatusVeiculo` com transições ATIVO↔MANUTENCAO e ATIVO→INATIVO. Veículo com motorista alocado não muda de status.
+- **Strategy:** `Basica`, `Complexa` e `Pesada` calculam o custo de manutenção a partir de `custos_manutencao` no `settings.json`.
+- **Repository:** `RepositorioBase` define o contrato. O domínio não conhece JSON nem SQLite; ele só expõe `para_dict`/`de_dict`.
+- **Regras configuráveis (`settings.json`):** limite de km da revisão, faixa de consumo (global e por tipo), custos de manutenção e CNH mínima por tipo.
+- **Revisão preventiva:** o contador de km parte do cadastro. Manutenção `preventiva` zera o contador. Com revisão pendente, a alocação é bloqueada (`PoliticaNaoAtendidaError`).
+- **Consumo real:** (km rodados desde o cadastro) ÷ (litros abastecidos). Sem dados, usa o consumo declarado.
+- **Exceções:** `ManutencaoInvalidaError`, `AlocacaoInvalidaError`, `PoliticaNaoAtendidaError`, `RepositorioError`, `NaoEncontradoError`.
 
 ## Como Executar o Sistema 
 Atualmente o sistema encontra-se em fase de modelagem inicial.  
